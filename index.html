@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1713">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Bankroll Tracker</title>
+<style>
+:root{
+  --bg:#0f1713; --card:#17231d; --card2:#1d2c24; --line:#2a3f33; --text:#e8efe9; --muted:#8fa699;
+  --accent:#2fbf71; --accent-ink:#06210f; --pos:#38c97e; --neg:#f06262; --gold:#e3b54f;
+  --s:#e8efe9; --h:#ff6b6b; --d:#5aa9ff; --c:#4fd18b;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body.noscroll{overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;background:var(--bg);border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+main{padding:14px 16px calc(96px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--card);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;padding:9px 0 8px;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button svg{width:22px;height:22px}
+nav button.on{color:var(--accent)}
+#fab{position:fixed;right:18px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:7;width:56px;height:56px;border-radius:18px;border:0;
+  background:var(--accent);color:var(--accent-ink);font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#fab[hidden]{display:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.hero{text-align:center;padding:18px 14px}
+.hero .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.8px}
+.hero .big{font-size:38px;font-weight:800;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .small{font-size:12.5px} .center{text-align:center}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--card2);border-radius:10px;padding:10px 8px;text-align:center;min-width:0}
+.stat b{display:block;font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:18px 2px 8px;font-weight:600}
+.chips{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 13px;white-space:nowrap;font-size:13px}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.chart{width:100%;height:150px;display:block}
+.chart .zero{stroke:var(--line);stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
+.chart-lab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{color:var(--muted);font-weight:500;text-align:right;padding:4px 4px;font-size:12px}
+td{padding:7px 4px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+.list{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line);cursor:pointer}
+.item:first-child{border-top:0}
+.item:active{background:var(--card2)}
+.grow{flex:1;min-width:0}
+.grow > div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.month{display:flex;justify-content:space-between;margin:16px 2px 6px;font-size:13px;color:var(--muted)}
+.live{border-color:var(--accent);background:linear-gradient(180deg,#183626,var(--card))}
+.live .btns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.live .btn{padding:10px 4px;font-size:13.5px;white-space:nowrap}
+.live .head{display:flex;align-items:center;gap:8px;font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--neg);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.timer{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0 0}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{flex:1;min-width:0;border:1px solid var(--line);background:var(--card2);border-radius:11px;padding:11px 10px;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:none;border-color:#5a2a2a;color:var(--neg)}
+.btn.ghost{background:none}
+.empty{text-align:center;color:var(--muted);padding:36px 16px}
+.empty b{display:block;color:var(--text);font-size:16px;margin-bottom:4px}
+.search{width:100%;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:10px}
+/* cards */
+.pc{display:inline-flex;align-items:center;justify-content:center;width:26px;height:34px;border-radius:5px;background:#f4f4ef;
+  font-weight:800;font-size:14px;line-height:1;margin-right:3px;flex-direction:column;letter-spacing:-.5px}
+.pc i{font-style:normal;font-size:12px;margin-top:1px}
+.pc.s{color:#1a1a1a}.pc.h{color:#d62b2b}.pc.d{color:#1f6fd1}.pc.c{color:#1d9a52}
+.pc.sm{width:20px;height:26px;font-size:11.5px;border-radius:4px;margin-right:2px}
+.pc.sm i{font-size:10px}
+.hcards{display:flex;flex-shrink:0}
+.tag{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:0 6px;font-size:11.5px;margin-left:4px;color:var(--muted)}
+/* sheet */
+#sheetWrap{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+#sheetWrap[hidden]{display:none}
+#sheet{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;border-top:1px solid var(--line);
+  padding:8px 16px calc(20px + env(safe-area-inset-bottom));animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 10px}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sheet-h h3{margin:0;font-size:18px}
+.x{background:none;border:0;color:var(--muted);font-size:26px;line-height:1;padding:0 4px}
+label.f{display:block;margin-bottom:10px}
+label.f > span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.f input,.f select,.f textarea{width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 11px;outline:none}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent)}
+.f textarea{min-height:60px;resize:vertical}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;padding:8px;border-radius:8px;color:var(--muted);font-weight:600}
+.seg button.on{background:var(--card2);color:var(--text)}
+form .tonly{display:none}
+form[data-type="tourney"] .tonly{display:block}
+form[data-type="tourney"] .conly{display:none}
+form.startmode .endonly{display:none}
+.profit-preview{text-align:center;font-weight:700;font-size:18px;margin:2px 0 12px}
+.slots{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.slots .lbl{width:52px;font-size:12px;color:var(--muted);text-transform:uppercase}
+.slot{width:40px;height:52px;border-radius:7px;border:1.5px dashed var(--line);background:var(--card);padding:0;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.slot.sel{border-color:var(--accent);border-style:solid;box-shadow:0 0 0 2px rgba(47,191,113,.3)}
+.slot .pc{width:36px;height:48px;font-size:18px;margin:0}
+.slot .pc i{font-size:16px}
+.gap{width:6px}
+.picker{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:12px}
+.picker .pg{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px}
+.picker .pg button{padding:0;border:0;background:none;aspect-ratio:3/4;min-width:0}
+.picker .pc{width:100%;height:100%;margin:0;font-size:12px}
+.picker .pc i{font-size:10px}
+.picker .pg button:disabled{opacity:.18}
+.picker .pact{display:flex;gap:8px;margin-top:8px}
+details.f summary{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:6px 0;cursor:pointer}
+#toast{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#e8efe9;color:#0f1713;
+  padding:10px 16px;border-radius:10px;font-weight:600;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.banner{display:flex;align-items:center;gap:10px}
+.menu .btn{display:block;width:100%;text-align:left;margin-bottom:8px;padding:14px}
+.menu .btn small{display:block;font-weight:400;color:var(--muted);margin-top:2px}
+.menu .btn.primary small{color:var(--accent-ink);opacity:.75}
+</style>
+</head>
+<body>
+<header><h1 id="title">Dashboard</h1><div id="topAction"></div></header>
+<main id="view"></main>
+<button id="fab" aria-label="Add">+</button>
+<nav id="tabs">
+  <button data-tab="dash" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg>Home</button>
+  <button data-tab="sessions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Sessions</button>
+  <button data-tab="hands"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="11" height="15" rx="2"/><path d="M10 4.5l8.5 2.3a2 2 0 011.4 2.4L17 19.5"/></svg>Hands</button>
+  <button data-tab="bank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg>Bankroll</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Settings</button>
+</nav>
+<div id="sheetWrap" hidden><div id="sheet"></div></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ---------- utilities ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const KEY = 'pbt.v1';
+const GAMES = ['NLHE', 'PLO', 'PLO5', 'Limit Hold\'em', 'Short Deck', 'Stud', 'Mixed', 'MTT', 'SNG'];
+const POSITIONS = ['UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB', 'Straddle'];
+const RANKS = 'AKQJT98765432'.split('');
+const SUITS = ['s', 'h', 'd', 'c'];
+const SYM = { s: '♠', h: '♥', d: '♦', c: '♣' };
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => { const n = parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+const has = v => v !== '' && v != null;
+const cls = n => n > 0 ? 'pos' : n < 0 ? 'neg' : '';
+function money(n, signed) {
+  const a = Math.abs(n);
+  const s = a.toLocaleString(undefined, { minimumFractionDigits: Math.round(a * 100) % 100 ? 2 : 0, maximumFractionDigits: 2 });
+  return (n < 0 ? '−' : signed && n > 0 ? '+' : '') + S.settings.currency + s;
+}
+function dur(min) { min = Math.max(0, Math.round(min)); const h = Math.floor(min / 60), m = min % 60; return h ? `${h}h ${m}m` : `${m}m`; }
+function clock(ms) { const t = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60; return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`; }
+const toInput = t => { const d = new Date(t); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
+const fromInput = v => v ? new Date(v).getTime() : null;
+const fmtDate = t => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const fmtDay = t => new Date(t).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+const fmtTime = t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2200); }
+
+/* ---------- storage ---------- */
+function fresh() {
+  return { version: 1, settings: { currency: '$', startingBankroll: 0, defaultGame: 'NLHE', defaultStakes: '1/2' }, sessions: [], txns: [], hands: [] };
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && d.version) { const f = fresh(); return { ...f, ...d, settings: { ...f.settings, ...d.settings } }; }
+  } catch (e) { /* fall through to fresh state */ }
+  return fresh();
+}
+let S = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { toast('Could not save: ' + e.message); }
+  if (navigator.storage && navigator.storage.persist && !save.asked) { save.asked = true; navigator.storage.persist().catch(() => {}); }
+}
+
+/* ---------- domain ---------- */
+const profit = s => num(s.cashOut) - num(s.buyIn);
+const minutes = s => Math.max(0, ((s.end || Date.now()) - s.start) / 6e4);
+const completed = () => S.sessions.filter(s => !s.active);
+const active = () => S.sessions.filter(s => s.active);
+function bigBlind(stakes) { const ns = String(stakes || '').match(/\d+(\.\d+)?/g); return ns && ns.length >= 2 ? parseFloat(ns[1]) : 0; }
+function bankroll() {
+  return num(S.settings.startingBankroll)
+    + completed().reduce((a, s) => a + profit(s), 0)
+    + S.txns.reduce((a, t) => a + (t.kind === 'deposit' ? 1 : -1) * num(t.amount), 0);
+}
+function stats(list) {
+  const n = list.length, net = list.reduce((a, s) => a + profit(s), 0);
+  const mins = list.reduce((a, s) => a + minutes(s), 0);
+  const wins = list.filter(s => profit(s) > 0).length;
+  const ps = list.map(profit);
+  let bbs = 0, bbHours = 0;
+  list.forEach(s => { const bb = bigBlind(s.stakes); if (s.type === 'cash' && bb > 0) { bbs += profit(s) / bb; bbHours += minutes(s) / 60; } });
+  return {
+    n, net, mins, wins,
+    hourly: mins ? net / (mins / 60) : 0,
+    winPct: n ? wins / n * 100 : 0,
+    avg: n ? net / n : 0,
+    best: n ? Math.max(...ps) : 0,
+    worst: n ? Math.min(...ps) : 0,
+    bbhr: bbHours ? bbs / bbHours : null,
+  };
+}
+function uniq(arr) { return [...new Set(arr.filter(Boolean))]; }
+function suggestions(field) {
+  const seen = S.sessions.slice().sort((a, b) => b.start - a.start).map(s => s[field]);
+  return uniq(field === 'game' ? [...seen, ...GAMES] : seen);
+}
+function datalist(id, items) { return `<datalist id="${id}">${items.map(v => `<option value="${esc(v)}">`).join('')}</datalist>`; }
+
+/* ---------- card rendering ---------- */
+function card(c, sm) {
+  if (!c) return '';
+  const r = c[0], s = c[1];
+  return `<span class="pc ${s}${sm ? ' sm' : ''}">${r === 'T' ? '10' : r}<i>${SYM[s]}</i></span>`;
+}
+function normCard(c) {
+  c = String(c).trim().replace(/^10/, 'T');
+  if (!/^[2-9TJQKA][shdc]$/i.test(c)) return '';
+  return c[0].toUpperCase() + c[1].toLowerCase();
+}
+
+/* ---------- UI state ---------- */
+const UI = { tab: 'dash', period: 'all', sessFilter: 'all', sessQuery: '', handQuery: '', handSession: '' };
+let installEvt = null;
+
+function setTab(t) {
+  UI.tab = t;
+  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  window.scrollTo(0, 0);
+  render();
+}
+function render() {
+  const titles = { dash: 'Dashboard', sessions: 'Sessions', hands: 'Hand Histories', bank: 'Bankroll', settings: 'Settings' };
+  $('#title').textContent = titles[UI.tab];
+  $('#topAction').innerHTML = '';
+  $('#fab').hidden = UI.tab === 'settings';
+  const v = $('#view');
+  v.innerHTML = ({ dash: viewDash, sessions: viewSessions, hands: viewHands, bank: viewBank, settings: viewSettings })[UI.tab]();
+  tick();
+}
+
+/* ---------- dashboard ---------- */
+function inPeriod(t, p) {
+  if (p === 'all') return true;
+  const now = new Date();
+  if (p === 'ytd') return t >= new Date(now.getFullYear(), 0, 1).getTime();
+  if (p === 'lastyear') return t >= new Date(now.getFullYear() - 1, 0, 1).getTime() && t < new Date(now.getFullYear(), 0, 1).getTime();
+  return t >= Date.now() - num(p) * 864e5;
+}
+function chart(list) {
+  const sorted = list.slice().sort((a, b) => a.end - b.end);
+  const pts = [0];
+  sorted.forEach(s => pts.push(pts[pts.length - 1] + profit(s)));
+  if (pts.length < 3) return '<p class="muted center small">Log at least two sessions to see your profit graph.</p>';
+  const W = 320, H = 150, P = 6;
+  const mn = Math.min(...pts), mx = Math.max(...pts), r = (mx - mn) || 1;
+  const x = i => P + i * (W - 2 * P) / (pts.length - 1), y = v => P + (mx - v) * (H - 2 * P) / r;
+  const d = pts.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join('');
+  const col = pts[pts.length - 1] >= 0 ? 'var(--pos)' : 'var(--neg)';
+  const z = y(0).toFixed(1);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <line class="zero" x1="0" x2="${W}" y1="${z}" y2="${z}"/>
+    <path d="${d}L${x(pts.length - 1).toFixed(1)} ${z}L${x(0).toFixed(1)} ${z}Z" fill="${col}" opacity=".13"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  </svg><div class="chart-lab"><span>Peak ${money(mx, true)}</span><span>${sorted.length} sessions</span><span>Low ${money(mn, true)}</span></div>`;
+}
+function breakdown(list, keyFn, label) {
+  const g = {};
+  list.forEach(s => { const k = keyFn(s) || '—'; (g[k] = g[k] || []).push(s); });
+  const rows = Object.entries(g).map(([k, l]) => [k, stats(l)]).sort((a, b) => b[1].net - a[1].net);
+  if (!rows.length) return '';
+  return `<h2>By ${label}</h2><div class="card" style="padding:8px 12px"><table>
+    <tr><th>${label}</th><th>#</th><th>Hours</th><th>Net</th><th>/hr</th></tr>
+    ${rows.map(([k, s]) => `<tr><td>${esc(k)}</td><td>${s.n}</td><td>${(s.mins / 60).toFixed(1)}</td>
+      <td class="${cls(s.net)}">${money(s.net, true)}</td><td class="${cls(s.hourly)}">${money(s.hourly, true)}</td></tr>`).join('')}
+  </table></div>`;
+}
+function liveCard(s) {
+  return `<div class="card live">
+    <div class="head"><span class="dot"></span>Live · ${esc(s.game)} ${esc(s.stakes)}${s.venue ? ' @ ' + esc(s.venue) : ''}</div>
+    <div class="timer" data-start="${s.start}">${clock(Date.now() - s.start)}</div>
+    <div class="muted">In for <b style="color:var(--text)">${money(num(s.buyIn))}</b> · started ${fmtTime(s.start)}</div>
+    <div class="btns">
+      <button class="btn" data-act="rebuy" data-id="${s.id}">+ Rebuy</button>
+      <button class="btn" data-act="newhand" data-id="${s.id}">Log hand</button>
+      <button class="btn ghost" data-act="editsession" data-id="${s.id}">Edit</button>
+      <button class="btn primary" data-act="endsession" data-id="${s.id}">Cash out</button>
+    </div></div>`;
+}
+function viewDash() {
+  const br = bankroll();
+  const list = completed().filter(s => inPeriod(s.start, UI.period));
+  const st = stats(list);
+  const periods = [['all', 'All time'], ['ytd', 'This year'], ['lastyear', 'Last year'], ['90', '90 days'], ['30', '30 days'], ['7', '7 days']];
+  return `
+    ${installEvt ? `<div class="card banner"><div class="grow">Install this app on your home screen.</div><button class="btn primary" style="flex:0 0 auto" data-act="install">Install</button></div>` : ''}
+    <div class="card hero"><div class="lbl">Current bankroll</div><div class="big">${money(br)}</div>
+      <div class="small muted">${S.sessions.length ? `${completed().length} sessions · ${S.hands.length} hands logged` : 'Set your starting bankroll in Settings'}</div></div>
+    ${active().map(liveCard).join('')}
+    ${!active().length ? `<button class="btn primary" style="width:100%;margin-bottom:12px;padding:14px" data-act="startsession">▶ Start live session</button>` : ''}
+    <div class="chips">${periods.map(([k, l]) => `<button class="chip${UI.period === k ? ' on' : ''}" data-act="period" data-id="${k}">${l}</button>`).join('')}</div>
+    <div class="card">
+      <div class="grid">
+        <div class="stat"><b class="${cls(st.net)}">${money(st.net, true)}</b><span>Net</span></div>
+        <div class="stat"><b class="${cls(st.hourly)}">${money(st.hourly, true)}</b><span>Per hour</span></div>
+        <div class="stat"><b>${(st.mins / 60).toFixed(1)}</b><span>Hours</span></div>
+        <div class="stat"><b>${st.n}</b><span>Sessions</span></div>
+        <div class="stat"><b>${st.winPct.toFixed(0)}%</b><span>Winning</span></div>
+        <div class="stat"><b class="${cls(st.avg)}">${money(st.avg, true)}</b><span>Avg</span></div>
+        <div class="stat"><b class="pos">${money(st.best, true)}</b><span>Best</span></div>
+        <div class="stat"><b class="neg">${money(st.worst, true)}</b><span>Worst</span></div>
+        <div class="stat"><b class="${cls(st.bbhr)}">${st.bbhr == null ? '—' : st.bbhr.toFixed(1)}</b><span>BB / hr</span></div>
+      </div>
+    </div>
+    <div class="card">${chart(list)}</div>
+    ${breakdown(list, s => [s.game, s.stakes].filter(Boolean).join(' '), 'Game')}
+    ${breakdown(list, s => s.venue, 'Venue')}
+    ${breakdown(list, s => s.type === 'tourney' ? 'Tournament' : 'Cash', 'Format')}
+  `;
+}
+
+/* ---------- sessions ---------- */
+function viewSessions() {
+  const q = UI.sessQuery.toLowerCase();
+  const list = S.sessions
+    .filter(s => UI.sessFilter === 'all' || s.type === UI.sessFilter)
+    .filter(s => !q || [s.game, s.stakes, s.venue, s.notes].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => b.start - a.start);
+  const chips = [['all', 'All'], ['cash', 'Cash'], ['tourney', 'Tournaments']];
+  let html = `<input class="search" type="search" placeholder="Search game, stakes, venue, notes…" value="${esc(UI.sessQuery)}" data-input="sessQuery">
+    <div class="chips">${chips.map(([k, l]) => `<button class="chip${UI.sessFilter === k ? ' on' : ''}" data-act="sessfilter" data-id="${k}">${l}</button>`).join('')}</div>`;
+  if (!list.length) return html + `<div class="empty"><b>No sessions yet</b>Tap + to log a past session, or start a live one from Home.</div>`;
+  const months = {};
+  list.forEach(s => { const k = new Date(s.start).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }); (months[k] = months[k] || []).push(s); });
+  for (const [m, l] of Object.entries(months)) {
+    const net = l.filter(s => !s.active).reduce((a, s) => a + profit(s), 0);
+    html += `<div class="month"><span>${m}</span><span class="${cls(net)}">${money(net, true)}</span></div><div class="list">`;
+    html += l.map(s => {
+      const handCount = S.hands.filter(h => h.sessionId === s.id).length;
+      const sub = [fmtDay(s.start), s.active ? 'in progress' : dur(minutes(s)), s.venue, s.type === 'tourney' && s.place ? `${ordinal(s.place)}${s.entrants ? '/' + s.entrants : ''}` : '', handCount ? `${handCount} hand${handCount > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+      return `<div class="item" data-act="editsession" data-id="${s.id}">
+        <div class="grow"><div>${esc(s.game)} ${esc(s.stakes)}${s.type === 'tourney' ? '<span class="tag">MTT</span>' : ''}${s.mode === 'online' ? '<span class="tag">online</span>' : ''}</div>
+        <div class="muted small">${esc(sub)}</div></div>
+        <div class="amt ${s.active ? '' : cls(profit(s))}">${s.active ? '<span class="dot" style="display:inline-block"></span>' : money(profit(s), true)}</div></div>`;
+    }).join('') + '</div>';
+  }
+  return html;
+}
+function ordinal(n) { n = num(n); const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+
+function sessionForm(id, startMode) {
+  const last = S.sessions.slice().sort((a, b) => b.start - a.start)[0];
+  const s = id ? S.sessions.find(x => x.id === id) : {
+    type: 'cash', game: last?.game || S.settings.defaultGame, stakes: last?.stakes || S.settings.defaultStakes, venue: last?.venue || '',
+    mode: last?.mode || 'live', start: startMode ? Date.now() : Date.now() - 4 * 36e5, end: Date.now(), buyIn: '', cashOut: '', notes: '', place: '', entrants: '',
+  };
+  const isActive = startMode || (s && s.active);
+  const title = startMode ? 'Start live session' : id ? (s.active ? 'Live session' : 'Edit session') : 'Add session';
+  openSheet(`
+    <div class="sheet-h"><h3>${title}</h3><button class="x" data-close>×</button></div>
+    <form id="sf" data-type="${s.type}" class="${isActive ? 'startmode' : ''}" autocomplete="off">
+      <div class="seg" id="typeSeg"><button type="button" data-v="cash" class="${s.type === 'cash' ? 'on' : ''}">Cash game</button><button type="button" data-v="tourney" class="${s.type === 'tourney' ? 'on' : ''}">Tournament</button></div>
+      <div class="row2">
+        <label class="f"><span>Game</span><input name="game" list="dl-game" value="${esc(s.game)}"></label>
+        <label class="f"><span class="conly">Stakes</span><span class="tonly">Buy-in level</span><input name="stakes" list="dl-stakes" value="${esc(s.stakes)}" placeholder="1/2"></label>
+      </div>
+      <div class="row2">
+        <label class="f"><span>Venue</span><input name="venue" list="dl-venue" value="${esc(s.venue)}" placeholder="Casino / site"></label>
+        <label class="f"><span>Setting</span><select name="mode"><option value="live"${s.mode !== 'online' ? ' selected' : ''}>Live</option><option value="online"${s.mode === 'online' ? ' selected' : ''}>Online</option></select></label>
+      </div>
+      <div class="row2">
+        <label class="f"><span>Start</span><input type="datetime-local" name="start" value="${toInput(s.start)}"></label>
+        <label class="f endonly"><span>End</span><input type="datetime-local" name="end" value="${toInput(s.end || Date.now())}"></label>
+      </div>
+      <div class="row2">
+        <label class="f"><span class="conly">Total buy-in</span><span class="tonly">Buy-in + rebuys</span><input name="buyIn" inputmode="decimal" value="${esc(s.buyIn)}" placeholder="0"></label>
+        <label class="f endonly"><span class="conly">Cash out</span><span class="tonly">Winnings</span><input name="cashOut" inputmode="decimal" value="${esc(s.cashOut)}" placeholder="0"></label>
+      </div>
+      <div class="row2 tonly" style="display:none" id="tfields">
+        <label class="f"><span>Finish place</span><input name="place" inputmode="numeric" value="${esc(s.place)}"></label>
+        <label class="f"><span>Entrants</span><input name="entrants" inputmode="numeric" value="${esc(s.entrants)}"></label>
+      </div>
+      <div class="profit-preview endonly" id="pp"></div>
+      <label class="f"><span>Notes</span><textarea name="notes" placeholder="Table dynamics, tilt, leaks, reads…">${esc(s.notes)}</textarea></label>
+      ${datalist('dl-game', suggestions('game'))}${datalist('dl-stakes', suggestions('stakes'))}${datalist('dl-venue', suggestions('venue'))}
+      <div class="btns">
+        ${id ? `<button type="button" class="btn danger" id="del">Delete</button>` : ''}
+        ${id && !s.active ? `<button type="button" class="btn" id="hands">Hands (${S.hands.filter(h => h.sessionId === id).length})</button>` : ''}
+        ${id && s.active ? `<button type="button" class="btn" id="markdone">Finish now</button>` : ''}
+        <button class="btn primary">${startMode ? 'Start' : 'Save'}</button>
+      </div>
+    </form>`, sh => {
+    const f = $('#sf', sh);
+    const syncT = () => { $('#tfields', sh).style.display = f.dataset.type === 'tourney' ? 'grid' : 'none'; };
+    syncT();
+    $('#typeSeg', sh).addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      f.dataset.type = b.dataset.v; $$('#typeSeg button', sh).forEach(x => x.classList.toggle('on', x === b)); syncT();
+      if (b.dataset.v === 'tourney' && f.game.value === 'NLHE') f.game.value = 'MTT';
+    });
+    const pp = () => {
+      const p = num(f.cashOut.value) - num(f.buyIn.value);
+      const m = (fromInput(f.end.value) - fromInput(f.start.value)) / 6e4;
+      $('#pp', sh).innerHTML = (has(f.buyIn.value) || has(f.cashOut.value)) ? `<span class="${cls(p)}">${money(p, true)}</span> <span class="muted small">${m > 0 ? 'over ' + dur(m) : ''}</span>` : '';
+    };
+    f.addEventListener('input', pp); pp();
+    if ($('#del', sh)) $('#del', sh).onclick = () => {
+      if (!confirm('Delete this session? Linked hands are kept but unlinked.')) return;
+      S.sessions = S.sessions.filter(x => x.id !== id);
+      S.hands.forEach(h => { if (h.sessionId === id) h.sessionId = ''; });
+      save(); closeSheet(); render(); toast('Session deleted');
+    };
+    if ($('#hands', sh)) $('#hands', sh).onclick = () => { UI.handSession = id; closeSheet(); setTab('hands'); };
+    if ($('#markdone', sh)) $('#markdone', sh).onclick = () => endSession(id); // swaps sheet content in place
+    f.onsubmit = e => {
+      e.preventDefault();
+      const d = {
+        type: f.dataset.type, game: f.game.value.trim(), stakes: f.stakes.value.trim(), venue: f.venue.value.trim(), mode: f.mode.value,
+        start: fromInput(f.start.value) || Date.now(), buyIn: f.buyIn.value.trim(), notes: f.notes.value,
+        place: f.dataset.type === 'tourney' ? f.place.value.trim() : '', entrants: f.dataset.type === 'tourney' ? f.entrants.value.trim() : '',
+      };
+      if (!isActive) {
+        d.end = fromInput(f.end.value); d.cashOut = f.cashOut.value.trim();
+        if (!d.end || d.end <= d.start) { toast('End time must be after start'); return; }
+      }
+      if (id) Object.assign(s, d);
+      else S.sessions.push({ id: uid(), ...d, active: !!startMode, end: startMode ? null : d.end, cashOut: startMode ? '' : d.cashOut });
+      save(); closeSheet(); render(); toast(startMode ? 'Session started — good luck!' : 'Session saved');
+    };
+  });
+}
+function rebuy(id) {
+  const s = S.sessions.find(x => x.id === id);
+  promptAmount('Add rebuy / top-up', '', v => { s.buyIn = String(num(s.buyIn) + v); save(); render(); toast(`Added ${money(v)} — in for ${money(num(s.buyIn))}`); });
+}
+function endSession(id) {
+  const s = S.sessions.find(x => x.id === id);
+  promptAmount(s.type === 'tourney' ? 'Tournament winnings' : 'Cash out amount', '', v => {
+    s.cashOut = String(v); s.end = Date.now(); s.active = false; save(); render();
+    toast(`Session ended: ${money(profit(s), true)} in ${dur(minutes(s))}`);
+  }, `In for ${money(num(s.buyIn))} · ${dur(minutes(s))} played`);
+}
+
+/* ---------- hands ---------- */
+function viewHands() {
+  const q = UI.handQuery.toLowerCase();
+  const sess = UI.handSession && S.sessions.find(s => s.id === UI.handSession);
+  const list = S.hands
+    .filter(h => !UI.handSession || h.sessionId === UI.handSession)
+    .filter(h => !q || [h.game, h.stakes, h.position, h.tags, h.notes, h.villain, h.pre, h.flop, h.turn, h.river, h.raw, ...(h.hero || [])].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => b.date - a.date);
+  const tags = uniq(S.hands.flatMap(h => String(h.tags || '').split(',').map(t => t.trim())));
+  let html = `<input class="search" type="search" placeholder="Search tags, cards (e.g. As), notes…" value="${esc(UI.handQuery)}" data-input="handQuery">`;
+  if (sess) html += `<div class="card banner"><div class="grow small">Showing hands from <b>${esc(sess.game)} ${esc(sess.stakes)}</b> on ${fmtDate(sess.start)}</div><button class="btn" style="flex:0 0 auto" data-act="clearhandsession">Show all</button></div>`;
+  if (tags.length) html += `<div class="chips">${tags.map(t => `<button class="chip${UI.handQuery.toLowerCase() === t.toLowerCase() ? ' on' : ''}" data-act="tag" data-id="${esc(t)}">#${esc(t)}</button>`).join('')}</div>`;
+  if (!list.length) return html + `<div class="empty"><b>No hands logged</b>Tap + to record a hand. You can enter it street by street or paste a raw hand history.</div>`;
+  html += '<div class="list">' + list.map(h => {
+    const s = S.sessions.find(x => x.id === h.sessionId);
+    const board = (h.board || []).filter(Boolean);
+    const tg = String(h.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+    return `<div class="item" data-act="edithand" data-id="${h.id}">
+      <div class="hcards">${(h.hero || []).filter(Boolean).length ? h.hero.map(c => card(c)).join('') : '<span class="muted small">??</span>'}</div>
+      <div class="grow"><div>${esc([h.position, h.game, h.stakes].filter(Boolean).join(' · ') || 'Hand')}${tg.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+        <div class="muted small">${board.length ? board.map(c => card(c, 1)).join('') + ' ' : ''}${fmtDate(h.date)}${s ? ' · ' + esc(s.venue || s.game) : ''}</div></div>
+      <div class="amt ${cls(num(h.result))}">${has(h.result) ? money(num(h.result), true) : '—'}</div></div>`;
+  }).join('') + '</div>';
+  return html;
+}
+function parseRaw(t) {
+  const out = {};
+  let m = t.match(/Dealt to (.+?) \[([^\]]+)\]/i);
+  if (m) { out.hero = m[2].trim().split(/\s+/).map(normCard).filter(Boolean).slice(0, 2); }
+  m = t.match(/Board:?\s*\[([^\]]+)\]/i);
+  if (m) out.board = m[1].trim().split(/\s+/).map(normCard).filter(Boolean).slice(0, 5);
+  else {
+    const b = [];
+    const fl = t.match(/\*\*\*\s*FLOP\s*\*\*\*\s*\[([^\]]+)\]/i);
+    if (fl) b.push(...fl[1].trim().split(/\s+/));
+    const tu = t.match(/\*\*\*\s*TURN\s*\*\*\*\s*\[[^\]]+\]\s*\[([^\]]+)\]/i);
+    if (tu) b.push(tu[1].trim());
+    const ri = t.match(/\*\*\*\s*RIVER\s*\*\*\*\s*\[[^\]]+\]\s*\[([^\]]+)\]/i);
+    if (ri) b.push(ri[1].trim());
+    if (b.length) out.board = b.map(normCard).filter(Boolean).slice(0, 5);
+  }
+  m = t.match(/\(\s*[$€£]?([\d.]+)\s*\/\s*[$€£]?([\d.]+)/);
+  if (m) out.stakes = `${m[1]}/${m[2]}`;
+  if (/hold'?em\s+no\s*limit|no\s*limit\s+hold'?em/i.test(t)) out.game = 'NLHE';
+  else if (/omaha\s+pot\s*limit|pot\s*limit\s+omaha/i.test(t)) out.game = 'PLO';
+  const sec = (a, b) => { const r = new RegExp(`\\*\\*\\*\\s*${a}[^\\n]*\\n([\\s\\S]*?)(?=\\*\\*\\*\\s*(?:${b})|$)`, 'i'); const x = t.match(r); return x ? x[1].trim() : ''; };
+  out.pre = sec('HOLE CARDS', 'FLOP|SUMMARY|SHOW');
+  out.flop = sec('FLOP', 'TURN|SUMMARY|SHOW');
+  out.turn = sec('TURN', 'RIVER|SUMMARY|SHOW');
+  out.river = sec('RIVER', 'SUMMARY|SHOW');
+  return out;
+}
+function handForm(id, presetSession) {
+  const live = active()[0];
+  const sid = presetSession || (!id && live ? live.id : '');
+  const ps = sid && S.sessions.find(s => s.id === sid);
+  const h = id ? S.hands.find(x => x.id === id) : {
+    date: Date.now(), sessionId: sid, game: ps?.game || S.settings.defaultGame, stakes: ps?.stakes || S.settings.defaultStakes,
+    position: '', hero: ['', ''], board: ['', '', '', '', ''], stack: '', villain: '', pre: '', flop: '', turn: '', river: '', result: '', tags: '', notes: '', raw: '',
+  };
+  const slots = [...(h.hero || ['', '']), ...(h.board || ['', '', '', '', ''])];
+  while (slots.length < 7) slots.push('');
+  const sessOpts = S.sessions.slice().sort((a, b) => b.start - a.start).slice(0, 60);
+  openSheet(`
+    <div class="sheet-h"><h3>${id ? 'Edit hand' : 'Log hand'}</h3><button class="x" data-close>×</button></div>
+    <form id="hf" autocomplete="off">
+      <div class="slots"><span class="lbl">Hero</span>${[0, 1].map(i => `<button type="button" class="slot" data-i="${i}"></button>`).join('')}</div>
+      <div class="slots"><span class="lbl">Board</span>${[2, 3, 4].map(i => `<button type="button" class="slot" data-i="${i}"></button>`).join('')}<span class="gap"></span><button type="button" class="slot" data-i="5"></button><span class="gap"></span><button type="button" class="slot" data-i="6"></button></div>
+      <div class="picker" id="picker" hidden>
+        <div class="pg">${SUITS.map(s => RANKS.map(r => `<button type="button" data-c="${r + s}">${card(r + s)}</button>`).join('')).join('')}</div>
+        <div class="pact"><button type="button" class="btn" id="pclear">Clear card</button><button type="button" class="btn" id="pdone">Done</button></div>
+      </div>
+      <div class="row2">
+        <label class="f"><span>Position</span><select name="position"><option value="">—</option>${POSITIONS.map(p => `<option${h.position === p ? ' selected' : ''}>${p}</option>`).join('')}</select></label>
+        <label class="f"><span>Result</span><input name="result" inputmode="decimal" value="${esc(h.result)}" placeholder="+250 / -120"></label>
+      </div>
+      <div class="row2">
+        <label class="f"><span>Game</span><input name="game" list="dl-hgame" value="${esc(h.game)}"></label>
+        <label class="f"><span>Stakes</span><input name="stakes" list="dl-hstakes" value="${esc(h.stakes)}"></label>
+      </div>
+      <div class="row2">
+        <label class="f"><span>Eff. stack</span><input name="stack" value="${esc(h.stack)}" placeholder="100bb"></label>
+        <label class="f"><span>Villain(s)</span><input name="villain" value="${esc(h.villain)}" placeholder="Seat 3, LAG reg"></label>
+      </div>
+      <label class="f"><span>Session</span><select name="sessionId"><option value="">— none —</option>
+        ${sessOpts.map(s => `<option value="${s.id}"${h.sessionId === s.id ? ' selected' : ''}>${fmtDate(s.start)} · ${esc(s.game)} ${esc(s.stakes)}${s.venue ? ' @ ' + esc(s.venue) : ''}${s.active ? ' (live)' : ''}</option>`).join('')}</select></label>
+      <label class="f"><span>Preflop action</span><textarea name="pre" placeholder="UTG opens 15, I 3-bet 50 from BTN, UTG calls">${esc(h.pre)}</textarea></label>
+      <label class="f"><span>Flop</span><textarea name="flop">${esc(h.flop)}</textarea></label>
+      <label class="f"><span>Turn</span><textarea name="turn">${esc(h.turn)}</textarea></label>
+      <label class="f"><span>River</span><textarea name="river">${esc(h.river)}</textarea></label>
+      <label class="f"><span>Tags (comma separated)</span><input name="tags" value="${esc(h.tags)}" placeholder="bluff, cooler, review"></label>
+      <label class="f"><span>Notes / takeaway</span><textarea name="notes">${esc(h.notes)}</textarea></label>
+      <details class="f"${h.raw ? ' open' : ''}><summary>Raw hand history (paste from site)</summary>
+        <textarea name="raw" style="min-height:120px;font-family:ui-monospace,monospace;font-size:12px">${esc(h.raw)}</textarea>
+        <button type="button" class="btn" id="parse" style="width:100%;margin-top:6px">Fill fields from hand history</button>
+      </details>
+      <label class="f"><span>Date</span><input type="datetime-local" name="date" value="${toInput(h.date)}"></label>
+      ${datalist('dl-hgame', suggestions('game'))}${datalist('dl-hstakes', suggestions('stakes'))}
+      <div class="btns">
+        ${id ? '<button type="button" class="btn danger" id="del">Delete</button>' : ''}
+        <button class="btn primary">Save hand</button>
+      </div>
+    </form>`, sh => {
+    const f = $('#hf', sh), picker = $('#picker', sh);
+    let cur = -1;
+    const draw = () => {
+      $$('.slot', sh).forEach(b => { const i = +b.dataset.i; b.innerHTML = slots[i] ? card(slots[i]) : (i < 2 ? '?' : '+'); b.classList.toggle('sel', i === cur); });
+      $$('#picker [data-c]', sh).forEach(b => { b.disabled = slots.some((c, i) => c === b.dataset.c && i !== cur); });
+      picker.hidden = cur < 0;
+    };
+    $$('.slot', sh).forEach(b => b.onclick = () => { cur = +b.dataset.i === cur ? -1 : +b.dataset.i; draw(); });
+    picker.addEventListener('click', e => {
+      const b = e.target.closest('[data-c]'); if (!b || cur < 0) return;
+      slots[cur] = b.dataset.c;
+      const next = [...Array(7).keys()].find(i => i > cur && !slots[i]);
+      cur = next ?? -1; draw();
+    });
+    $('#pclear', sh).onclick = () => { if (cur >= 0) { slots[cur] = ''; draw(); } };
+    $('#pdone', sh).onclick = () => { cur = -1; draw(); };
+    draw();
+    $('#parse', sh).onclick = () => {
+      const p = parseRaw(f.raw.value);
+      if (p.hero) p.hero.forEach((c, i) => slots[i] = c);
+      if (p.board) { for (let i = 0; i < 5; i++) slots[2 + i] = p.board[i] || ''; }
+      if (p.stakes) f.stakes.value = p.stakes;
+      if (p.game) f.game.value = p.game;
+      ['pre', 'flop', 'turn', 'river'].forEach(k => { if (p[k] && !f[k].value) f[k].value = p[k]; });
+      draw();
+      toast(p.hero || p.board ? 'Filled from hand history' : 'Could not recognise that format — fill in manually');
+    };
+    if ($('#del', sh)) $('#del', sh).onclick = () => {
+      if (!confirm('Delete this hand?')) return;
+      S.hands = S.hands.filter(x => x.id !== id); save(); closeSheet(); render(); toast('Hand deleted');
+    };
+    f.onsubmit = e => {
+      e.preventDefault();
+      const d = {
+        date: fromInput(f.date.value) || Date.now(), sessionId: f.sessionId.value, game: f.game.value.trim(), stakes: f.stakes.value.trim(),
+        position: f.position.value, hero: slots.slice(0, 2), board: slots.slice(2, 7), stack: f.stack.value.trim(), villain: f.villain.value.trim(),
+        pre: f.pre.value, flop: f.flop.value, turn: f.turn.value, river: f.river.value, result: f.result.value.trim(),
+        tags: f.tags.value.split(',').map(t => t.trim()).filter(Boolean).join(', '), notes: f.notes.value, raw: f.raw.value,
+      };
+      if (id) Object.assign(h, d); else S.hands.push({ id: uid(), ...d });
+      save(); closeSheet(); render(); toast('Hand saved');
+    };
+  });
+}
+
+/* ---------- bankroll ---------- */
+function viewBank() {
+  const dep = S.txns.filter(t => t.kind === 'deposit').reduce((a, t) => a + num(t.amount), 0);
+  const wd = S.txns.filter(t => t.kind !== 'deposit').reduce((a, t) => a + num(t.amount), 0);
+  const winnings = completed().reduce((a, s) => a + profit(s), 0);
+  const list = S.txns.slice().sort((a, b) => b.date - a.date);
+  return `<div class="card hero"><div class="lbl">Current bankroll</div><div class="big">${money(bankroll())}</div></div>
+    <div class="card" style="padding:8px 12px"><table>
+      <tr><td>Starting bankroll</td><td>${money(num(S.settings.startingBankroll))}</td></tr>
+      <tr><td>Poker results</td><td class="${cls(winnings)}">${money(winnings, true)}</td></tr>
+      <tr><td>Deposits</td><td class="pos">${money(dep, true)}</td></tr>
+      <tr><td>Withdrawals</td><td class="neg">${money(-wd, true)}</td></tr>
+    </table></div>
+    <div class="btns" style="margin-bottom:12px"><button class="btn" data-act="txn" data-id="deposit">+ Deposit</button><button class="btn" data-act="txn" data-id="withdrawal">− Withdraw</button></div>
+    <h2>Transactions</h2>
+    ${list.length ? `<div class="list">${list.map(t => `<div class="item" data-act="edittxn" data-id="${t.id}">
+      <div class="grow"><div>${t.kind === 'deposit' ? 'Deposit' : 'Withdrawal'}${t.note ? ' · ' + esc(t.note) : ''}</div><div class="muted small">${fmtDate(t.date)}</div></div>
+      <div class="amt ${t.kind === 'deposit' ? 'pos' : 'neg'}">${money((t.kind === 'deposit' ? 1 : -1) * num(t.amount), true)}</div></div>`).join('')}</div>`
+      : `<div class="empty"><b>No transactions</b>Record money you add to or take out of your poker bankroll.</div>`}`;
+}
+function txnForm(id, kind) {
+  const t = id ? S.txns.find(x => x.id === id) : { kind, amount: '', date: Date.now(), note: '' };
+  openSheet(`
+    <div class="sheet-h"><h3>${id ? 'Edit transaction' : t.kind === 'deposit' ? 'Deposit' : 'Withdrawal'}</h3><button class="x" data-close>×</button></div>
+    <form id="tf">
+      <div class="seg" id="kseg"><button type="button" data-v="deposit" class="${t.kind === 'deposit' ? 'on' : ''}">Deposit</button><button type="button" data-v="withdrawal" class="${t.kind !== 'deposit' ? 'on' : ''}">Withdrawal</button></div>
+      <label class="f"><span>Amount</span><input name="amount" inputmode="decimal" value="${esc(t.amount)}" required></label>
+      <label class="f"><span>Date</span><input type="datetime-local" name="date" value="${toInput(t.date)}"></label>
+      <label class="f"><span>Note</span><input name="note" value="${esc(t.note)}" placeholder="e.g. Moved to online site"></label>
+      <div class="btns">${id ? '<button type="button" class="btn danger" id="del">Delete</button>' : ''}<button class="btn primary">Save</button></div>
+    </form>`, sh => {
+    const f = $('#tf', sh); let k = t.kind;
+    $('#kseg', sh).onclick = e => { const b = e.target.closest('button'); if (!b) return; k = b.dataset.v; $$('#kseg button', sh).forEach(x => x.classList.toggle('on', x === b)); };
+    if ($('#del', sh)) $('#del', sh).onclick = () => { if (!confirm('Delete this transaction?')) return; S.txns = S.txns.filter(x => x.id !== id); save(); closeSheet(); render(); };
+    f.onsubmit = e => {
+      e.preventDefault();
+      const amt = Math.abs(num(f.amount.value)); if (!amt) { toast('Enter an amount'); return; }
+      const d = { kind: k, amount: String(amt), date: fromInput(f.date.value) || Date.now(), note: f.note.value.trim() };
+      if (id) Object.assign(t, d); else S.txns.push({ id: uid(), ...d });
+      save(); closeSheet(); render(); toast('Saved');
+    };
+    setTimeout(() => f.amount.focus(), 150);
+  });
+}
+
+/* ---------- settings ---------- */
+function viewSettings() {
+  return `<div class="card">
+    <form id="setf">
+      <div class="row2">
+        <label class="f"><span>Currency symbol</span><input name="currency" value="${esc(S.settings.currency)}" maxlength="4"></label>
+        <label class="f"><span>Starting bankroll</span><input name="startingBankroll" inputmode="decimal" value="${esc(S.settings.startingBankroll)}"></label>
+      </div>
+      <div class="row2">
+        <label class="f"><span>Default game</span><input name="defaultGame" value="${esc(S.settings.defaultGame)}"></label>
+        <label class="f"><span>Default stakes</span><input name="defaultStakes" value="${esc(S.settings.defaultStakes)}"></label>
+      </div>
+      <button class="btn primary" style="width:100%">Save settings</button>
+    </form></div>
+    <h2>Backup &amp; export</h2>
+    <div class="card">
+      <p class="small muted" style="margin-top:0">Your data is stored only on this device. Export a backup regularly, especially before clearing browser data or switching phones.</p>
+      <div class="btns" style="margin-top:0"><button class="btn primary" data-act="export">Export backup</button><button class="btn" data-act="import">Restore backup</button></div>
+      <div class="btns"><button class="btn" data-act="csv" data-id="sessions">Sessions CSV</button><button class="btn" data-act="csv" data-id="hands">Hands CSV</button></div>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+    ${installEvt ? `<div class="card banner"><div class="grow">Install as an app</div><button class="btn primary" style="flex:0 0 auto" data-act="install">Install</button></div>` : ''}
+    <h2>Danger zone</h2>
+    <div class="card"><button class="btn danger" style="width:100%" data-act="wipe">Delete all data</button></div>
+    <p class="center small muted">${S.sessions.length} sessions · ${S.hands.length} hands · ${S.txns.length} transactions</p>`;
+}
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function csv(rows) { return rows.map(r => r.map(v => { v = String(v ?? ''); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }).join(',')).join('\n'); }
+const stamp = () => new Date().toISOString().slice(0, 10);
+function exportCsv(kind) {
+  if (kind === 'sessions') {
+    const rows = [['start', 'end', 'type', 'game', 'stakes', 'venue', 'setting', 'hours', 'buy_in', 'cash_out', 'profit', 'place', 'entrants', 'notes']];
+    completed().sort((a, b) => a.start - b.start).forEach(s => rows.push([new Date(s.start).toISOString(), new Date(s.end).toISOString(), s.type, s.game, s.stakes, s.venue, s.mode,
+      (minutes(s) / 60).toFixed(2), num(s.buyIn), num(s.cashOut), profit(s), s.place, s.entrants, s.notes]));
+    download(`poker-sessions-${stamp()}.csv`, csv(rows), 'text/csv');
+  } else {
+    const rows = [['date', 'game', 'stakes', 'position', 'hero', 'board', 'result', 'tags', 'preflop', 'flop', 'turn', 'river', 'notes']];
+    S.hands.slice().sort((a, b) => a.date - b.date).forEach(h => rows.push([new Date(h.date).toISOString(), h.game, h.stakes, h.position, (h.hero || []).join(' '), (h.board || []).filter(Boolean).join(' '),
+      h.result, h.tags, h.pre, h.flop, h.turn, h.river, h.notes]));
+    download(`poker-hands-${stamp()}.csv`, csv(rows), 'text/csv');
+  }
+}
+
+/* ---------- sheets & prompts ---------- */
+function openSheet(html, mount) {
+  const wasOpen = !$('#sheetWrap').hidden;
+  $('#sheet').innerHTML = '<div class="grab"></div>' + html;
+  $('#sheetWrap').hidden = false;
+  document.body.classList.add('noscroll');
+  $('#sheet').scrollTop = 0;
+  if (!wasOpen) history.pushState({ sheet: 1 }, '');
+  mount && mount($('#sheet'));
+}
+function hideSheet() { $('#sheetWrap').hidden = true; $('#sheet').innerHTML = ''; document.body.classList.remove('noscroll'); }
+function closeSheet() { if (history.state && history.state.sheet) history.back(); else hideSheet(); }
+window.addEventListener('popstate', hideSheet);
+function promptAmount(title, def, cb, sub) {
+  openSheet(`<div class="sheet-h"><h3>${esc(title)}</h3><button class="x" data-close>×</button></div>
+    ${sub ? `<p class="muted" style="margin-top:0">${esc(sub)}</p>` : ''}
+    <form id="pf"><label class="f"><span>Amount (${esc(S.settings.currency)})</span><input name="v" inputmode="decimal" value="${esc(def)}" style="font-size:22px"></label>
+    <div class="btns"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">OK</button></div></form>`, sh => {
+    const f = $('#pf', sh);
+    setTimeout(() => f.v.focus(), 150);
+    f.onsubmit = e => { e.preventDefault(); if (!has(f.v.value.trim())) { toast('Enter an amount'); return; } const v = num(f.v.value); closeSheet(); cb(v); };
+  });
+}
+function addMenu() {
+  openSheet(`<div class="sheet-h"><h3>Add</h3><button class="x" data-close>×</button></div><div class="menu">
+    ${active().length ? '' : '<button class="btn primary" data-m="start">▶ Start live session<small>Timer runs while you play; cash out when done</small></button>'}
+    <button class="btn" data-m="past">Log a completed session<small>Enter start/end times and results</small></button>
+    <button class="btn" data-m="hand">Record a hand<small>Cards, actions, result, notes</small></button>
+    <button class="btn" data-m="txn">Deposit / withdrawal<small>Money in or out of your bankroll</small></button></div>`, sh => {
+    sh.querySelector('.menu').onclick = e => {
+      const b = e.target.closest('[data-m]'); if (!b) return;
+      const m = b.dataset.m;
+      // Swap content in place (sheet is already open, so no history push).
+      if (m === 'start') sessionForm(null, true);
+      else if (m === 'past') sessionForm(null, false);
+      else if (m === 'hand') handForm(null);
+      else txnForm(null, 'deposit');
+    };
+  });
+}
+
+/* ---------- events ---------- */
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
+$('#fab').addEventListener('click', () => {
+  if (UI.tab === 'sessions') sessionForm(null, false);
+  else if (UI.tab === 'hands') handForm(null, UI.handSession || undefined);
+  else if (UI.tab === 'bank') txnForm(null, 'deposit');
+  else addMenu();
+});
+$('#sheetWrap').addEventListener('click', e => { if (e.target.id === 'sheetWrap' || e.target.closest('[data-close]')) closeSheet(); });
+$('#view').addEventListener('input', e => {
+  const k = e.target.dataset.input; if (!k) return;
+  UI[k] = e.target.value;
+  const pos = e.target.selectionStart;
+  render();
+  const el = $(`[data-input="${k}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} }
+});
+$('#view').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = b.dataset.id;
+  switch (b.dataset.act) {
+    case 'period': UI.period = id; render(); break;
+    case 'sessfilter': UI.sessFilter = id; render(); break;
+    case 'startsession': sessionForm(null, true); break;
+    case 'editsession': sessionForm(id); break;
+    case 'rebuy': rebuy(id); break;
+    case 'endsession': endSession(id); break;
+    case 'newhand': handForm(null, id); break;
+    case 'edithand': handForm(id); break;
+    case 'clearhandsession': UI.handSession = ''; render(); break;
+    case 'tag': UI.handQuery = UI.handQuery.toLowerCase() === id.toLowerCase() ? '' : id; render(); break;
+    case 'txn': txnForm(null, id); break;
+    case 'edittxn': txnForm(id); break;
+    case 'export': download(`poker-bankroll-backup-${stamp()}.json`, JSON.stringify(S, null, 1), 'application/json'); toast('Backup downloaded'); break;
+    case 'import': $('#importFile').click(); break;
+    case 'csv': exportCsv(id); break;
+    case 'install': installEvt && installEvt.prompt(); installEvt = null; render(); break;
+    case 'wipe':
+      if (confirm('Delete ALL sessions, hands and transactions? Export a backup first if unsure.') && confirm('Really delete everything? This cannot be undone.')) { S = fresh(); save(); render(); toast('All data deleted'); }
+      break;
+  }
+});
+$('#view').addEventListener('submit', e => {
+  if (e.target.id !== 'setf') return;
+  e.preventDefault();
+  const f = e.target;
+  S.settings.currency = f.currency.value.trim() || '$';
+  S.settings.startingBankroll = String(num(f.startingBankroll.value));
+  S.settings.defaultGame = f.defaultGame.value.trim();
+  S.settings.defaultStakes = f.defaultStakes.value.trim();
+  save(); render(); toast('Settings saved');
+});
+$('#view').addEventListener('change', e => {
+  if (e.target.id !== 'importFile' || !e.target.files[0]) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || !Array.isArray(d.sessions) || !Array.isArray(d.hands)) throw new Error('Not a bankroll backup file');
+      if (!confirm(`Replace current data with backup (${d.sessions.length} sessions, ${d.hands.length} hands)?`)) return;
+      const f = fresh(); S = { ...f, ...d, txns: d.txns || [], settings: { ...f.settings, ...d.settings } }; save(); render(); toast('Backup restored');
+    } catch (err) { toast('Import failed: ' + err.message); }
+  };
+  r.readAsText(e.target.files[0]);
+});
+function tick() { $$('.timer[data-start]').forEach(el => { el.textContent = clock(Date.now() - +el.dataset.start); }); }
+setInterval(tick, 1000);
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (UI.tab === 'dash' || UI.tab === 'settings') render(); });
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+render();
+</script>
+</body>
+</html>
